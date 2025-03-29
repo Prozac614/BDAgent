@@ -1,0 +1,30 @@
+research_analysis_task:
+  description: >
+    Find potential users in the {keyword} field who may be interested in the company's business.
+    The company's business is to do marketing services for various brands in Greater China.
+  expected_output: >
+    the name of one target brand
+  agent: global_business_research_analyst
+
+client_contact_information_task:
+  description: >
+    Find the key contact person in charge of marketing, branding or e-commerce direction 
+    of the brand and his/her email information through the target brand's official website, 
+    LinkedIn and other channels, and then a colleague will try to establish contact with the 
+    contact person and promote the company's marketing services. Don't stop until you find
+    the contact information of the ten brands.
+  expected_output: >
+    “brand-contact-email” given brand
+  agent: client_contact_information_specialist
+
+
+business_development_outreach_specialist_task:
+  description: >
+    After receiving a potential client's brand name, contact person, and email address, your
+    task is to research the brand's business model and marketing strategy, identify how our
+    services align with their needs, and craft a personalized outreach email that speaks directly
+    to their goals. You'll position our company as a strategic partner, using clear, tailored
+    messaging to initiate meaningful conversations and drive engagement.
+  expected_output: >
+    a email to the contact person of the brand
+  agent: business_development_outreach_specialist

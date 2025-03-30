@@ -28,3 +28,13 @@ business_development_outreach_specialist_task:
   expected_output: >
     a email to the contact person of the brand
   agent: business_development_outreach_specialist
+
+
+brand_researcher_analyst_task:
+  description: >
+    Research the brand's online presence and business performance. Use tools to analyze website
+    traffic and interest trends. Assess the brand's market visibility and sales potential, and 
+    provide clear, actionable recommendations on whether the brand is worth pursuing for collaboration.
+  expected_output: >
+    a report on the brand's market visibility and growth potential
+  agent: brand_researcher_analyst

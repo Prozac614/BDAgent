@@ -2,6 +2,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import SerperDevTool
 
+from .tools.google_trend_tool import GoogleTrendTool
+from .tools.website_traffic_tool import WebsiteTrafficTool
+
 # If you want to run a snippet of code before or after the crew starts,
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
@@ -46,6 +49,15 @@ class Merchant:
             llm="deepseek/deepseek-chat",
         )
 
+    @agent
+    def brand_researcher_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config["brand_researcher_analyst"],
+            verbose=True,
+            tools=[SerperDevTool(), GoogleTrendTool(), WebsiteTrafficTool()],
+            llm="deepseek/deepseek-chat",
+        )
+
     # To learn more about structured task outputs,
     # task dependencies, and task callbacks, check out the documentation:
     # https://docs.crewai.com/concepts/tasks#overview-of-a-task
@@ -67,6 +79,12 @@ class Merchant:
             config=self.tasks_config["business_development_outreach_specialist_task"],
         )
 
+    @task
+    def brand_researcher_analyst_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["brand_researcher_analyst_task"],
+        )
+
     @crew
     def crew(self) -> Crew:
         """Creates the Merchant crew"""
@@ -76,7 +94,9 @@ class Merchant:
         return Crew(
             agents=self.agents,  # Automatically created by the @agent decorator
             tasks=self.tasks,  # Automatically created by the @task decorator
-            process=Process.sequential,
+            manager_llm="deepseek/deepseek-chat",
+            process=Process.hierarchical,
+            # planning=True,
             verbose=True,
             # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
         )

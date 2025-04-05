@@ -38,3 +38,29 @@ brand_researcher_analyst_task:
   expected_output: >
     a report on the brand's market visibility and growth potential
   agent: brand_researcher_analyst
+
+customer_solutions_specialist_task:
+  description: >
+    Evaluate client-specific information—including business objectives, 
+    budget, target audience, and desired outcomes—to determine the most 
+    suitable service model. Based on this assessment, recommend either the 
+    performance-based model or the flat-fee model, ensuring the proposed approach 
+    aligns with the client’s goals and maximizes the effectiveness of our marketing services.
+    
+    Our company offers the following two service models:
+
+    Performance-Based Model
+    Under this model, we charge a commission based on the actual sales 
+    generated through our marketing initiatives. This results-oriented approach 
+    ensures that costs are directly tied to performance outcomes.
+    Recommended for clients seeking scalable growth with minimal upfront investment, 
+    particularly those open to long-term collaboration and revenue sharing.
+
+    Flat-Fee Model
+    In this model, clients pay a predetermined fixed fee for a one-time marketing 
+    service. This approach provides cost certainty and clearly defined deliverables.
+    Recommended for clients with specific campaign objectives, limited timelines, or 
+    fixed budgets who prefer a straightforward and independent engagement.
+  expected_output: >
+    Customized ending solutions for users
+  agent: customer_solutions_specialist

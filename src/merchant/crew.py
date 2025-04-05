@@ -57,6 +57,15 @@ class Merchant:
             tools=[SerperDevTool(), GoogleTrendTool(), WebsiteTrafficTool()],
             llm="deepseek/deepseek-chat",
         )
+    
+    @agent
+    def customer_solutions_specialist(self) -> Agent:
+        return Agent(
+            config=self.agents_config["customer_solutions_specialist"],
+            verbose=True,
+            tools=[SerperDevTool(), GoogleTrendTool(), WebsiteTrafficTool()],
+            llm="deepseek/deepseek-chat",
+        )
 
     # To learn more about structured task outputs,
     # task dependencies, and task callbacks, check out the documentation:
@@ -70,21 +79,31 @@ class Merchant:
     @task
     def client_contact_information_task(self) -> Task:
         return Task(
+            context=[self.research_analysis_task()],
             config=self.tasks_config["client_contact_information_task"],
         )
 
-    @task
-    def business_development_outreach_specialist_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["business_development_outreach_specialist_task"],
-        )
 
     @task
     def brand_researcher_analyst_task(self) -> Task:
         return Task(
+            context=[self.research_analysis_task()],
             config=self.tasks_config["brand_researcher_analyst_task"],
         )
 
+    @task
+    def customer_solutions_specialist_task(self) -> Task:
+        return Task(
+            context=[self.brand_researcher_analyst_task()],
+            config=self.tasks_config["customer_solutions_specialist_task"],
+        )
+    
+    @task
+    def business_development_outreach_specialist_task(self) -> Task:
+        return Task(
+            context=[self.customer_solutions_specialist_task(), self.brand_researcher_analyst_task(),self.client_contact_information_task()],
+            config=self.tasks_config["business_development_outreach_specialist_task"],
+        )
     @crew
     def crew(self) -> Crew:
         """Creates the Merchant crew"""
@@ -96,7 +115,8 @@ class Merchant:
             tasks=self.tasks,  # Automatically created by the @task decorator
             manager_llm="deepseek/deepseek-chat",
             process=Process.hierarchical,
-            # planning=True,
+            planning=True,
+            planning_llm="deepseek/deepseek-chat",
             verbose=True,
             # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
         )

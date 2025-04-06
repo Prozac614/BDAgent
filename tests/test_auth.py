@@ -36,8 +36,7 @@ def client():
     # 清理数据库
     Base.metadata.drop_all(bind=engine)
 
-def test_register_user(client):
-    """测试用户注册"""
+def test_register(client):
     response = client.post(
         "/api/auth/register",
         json={
@@ -49,7 +48,63 @@ def test_register_user(client):
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
+    assert "token_type" in data
     assert data["token_type"] == "bearer"
+
+def test_login(client):
+    # First register a user
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "test@example.com",
+            "password": "testpassword",
+            "full_name": "Test User"
+        }
+    )
+    
+    # Then try to login
+    response = client.post(
+        "/api/auth/token",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "token_type" in data
+    assert data["token_type"] == "bearer"
+
+def test_get_current_user(client):
+    # First register and login
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "test@example.com",
+            "password": "testpassword",
+            "full_name": "Test User"
+        }
+    )
+    
+    login_response = client.post(
+        "/api/auth/token",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+    )
+    token = login_response.json()["access_token"]
+    
+    # Then get current user info
+    response = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "test@example.com"
+    assert data["full_name"] == "Test User"
 
 def test_register_duplicate_email(client):
     """测试注册重复邮箱"""
@@ -76,31 +131,6 @@ def test_register_duplicate_email(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already registered"
 
-def test_login_user(client):
-    """测试用户登录"""
-    # 先注册用户
-    client.post(
-        "/api/auth/register",
-        json={
-            "email": "test@example.com",
-            "password": "testpassword",
-            "full_name": "Test User"
-        }
-    )
-    
-    # 尝试登录
-    response = client.post(
-        "/api/auth/token",
-        data={
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
-
 def test_login_wrong_password(client):
     """测试使用错误密码登录"""
     # 先注册用户
@@ -123,29 +153,6 @@ def test_login_wrong_password(client):
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
-
-def test_get_current_user(client):
-    """测试获取当前用户信息"""
-    # 先注册用户
-    response = client.post(
-        "/api/auth/register",
-        json={
-            "email": "test@example.com",
-            "password": "testpassword",
-            "full_name": "Test User"
-        }
-    )
-    token = response.json()["access_token"]
-    
-    # 获取用户信息
-    response = client.get(
-        "/api/auth/me",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "test@example.com"
-    assert data["full_name"] == "Test User"
 
 def test_get_current_user_invalid_token(client):
     """测试使用无效token获取用户信息"""

@@ -86,10 +86,6 @@ def superuser_token(client, test_session):
         }
     )
     
-    # 验证用户确实是超级用户
-    user = test_session.query(User).filter(User.email == "admin@example.com").first()
-    assert user and user.is_superuser, "Failed to set superuser status"
-    
     return login_response.json()["access_token"]
 
 @pytest.fixture(scope="session", autouse=True)

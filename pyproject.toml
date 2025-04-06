@@ -46,5 +46,4 @@ test = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=merchant --cov-report=term-missing"
 asyncio_mode = "auto"

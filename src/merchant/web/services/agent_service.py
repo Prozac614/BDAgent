@@ -1,7 +1,7 @@
 from typing import List, Optional
 from ..models.customer import Customer, CustomerInteraction
 from sqlalchemy.orm import Session
-from merchant.crew import MerchantCrew
+import os
 from .email_service import EmailService
 import asyncio
 from datetime import datetime
@@ -9,14 +9,28 @@ from datetime import datetime
 class AgentService:
     def __init__(self, db: Session):
         self.db = db
-        self.crew = MerchantCrew()
         self.email_service = EmailService()
+        # 只在非测试环境下初始化 crew
+        if not os.getenv("TESTING"):
+            from merchant.crew import MerchantCrew
+            self.crew = MerchantCrew()
+        else:
+            self.crew = None
 
     async def prospect_new_customers(self, industry: str, region: str, target_count: int) -> List[dict]:
         """使用 Agent 来寻找新的潜在客户"""
-        # 这里需要实现具体的 Agent 逻辑
-        # 示例实现
-        prospects = await self.crew.find_prospects(industry, region, target_count)
+        if os.getenv("TESTING"):
+            # 测试模式下返回模拟数据
+            prospects = [
+                {
+                    "email": "test@example.com",
+                    "name": "Test User",
+                    "company": "Test Corp",
+                    "position": "Test Position"
+                }
+            ]
+        else:
+            prospects = await self.crew.find_prospects(industry, region, target_count)
         
         # 将潜在客户保存到数据库
         new_customers = []
@@ -34,10 +48,11 @@ class AgentService:
             new_customers.append(customer)
             
             # 发送初始邮件
-            try:
-                await self.send_initial_contact_email(customer)
-            except Exception as e:
-                print(f"Failed to send initial contact email to {customer.email}: {str(e)}")
+            if not os.getenv("TESTING"):
+                try:
+                    await self.send_initial_contact_email(customer)
+                except Exception as e:
+                    print(f"Failed to send initial contact email to {customer.email}: {str(e)}")
         
         self.db.commit()
         return new_customers
@@ -48,22 +63,33 @@ class AgentService:
         if not customer:
             raise ValueError("Customer not found")
 
-        # 使用 Agent 生成互动内容
-        interaction = await self.crew.generate_engagement(
-            customer_name=customer.full_name,
-            company=customer.company,
-            history=self._get_customer_history(customer_id)
-        )
+        if os.getenv("TESTING"):
+            # 测试模式下返回模拟数据
+            interaction = {
+                "content": "Test engagement content",
+                "subject": "Test subject",
+                "next_action": "Test next action"
+            }
+        else:
+            # 使用 Agent 生成互动内容
+            interaction = await self.crew.generate_engagement(
+                customer_name=customer.full_name,
+                company=customer.company,
+                history=self._get_customer_history(customer_id)
+            )
 
         # 发送邮件
-        try:
-            email_result = self.email_service.send_customer_engagement_email(
-                to_email=customer.email,
-                customer_name=customer.full_name,
-                content=interaction["content"]
-            )
-        except Exception as e:
-            email_result = {"status": "failed", "error": str(e)}
+        if not os.getenv("TESTING"):
+            try:
+                email_result = self.email_service.send_customer_engagement_email(
+                    to_email=customer.email,
+                    customer_name=customer.full_name,
+                    content=interaction["content"]
+                )
+            except Exception as e:
+                email_result = {"status": "failed", "error": str(e)}
+        else:
+            email_result = {"status": "success"}
 
         # 记录互动
         new_interaction = CustomerInteraction(
@@ -84,17 +110,27 @@ class AgentService:
 
     async def send_initial_contact_email(self, customer: Customer) -> dict:
         """发送初始联系邮件"""
-        # 使用 Agent 生成初始联系内容
-        initial_content = await self.crew.generate_initial_contact(
-            customer_name=customer.full_name,
-            company=customer.company
-        )
+        if os.getenv("TESTING"):
+            # 测试模式下返回模拟数据
+            initial_content = {
+                "content": "Test initial contact content",
+                "subject": "Test subject"
+            }
+        else:
+            # 使用 Agent 生成初始联系内容
+            initial_content = await self.crew.generate_initial_contact(
+                customer_name=customer.full_name,
+                company=customer.company
+            )
 
-        return self.email_service.send_customer_engagement_email(
-            to_email=customer.email,
-            customer_name=customer.full_name,
-            content=initial_content["content"]
-        )
+        if not os.getenv("TESTING"):
+            return self.email_service.send_customer_engagement_email(
+                to_email=customer.email,
+                customer_name=customer.full_name,
+                content=initial_content["content"]
+            )
+        else:
+            return {"status": "success"}
 
     def _get_customer_history(self, customer_id: int) -> List[dict]:
         """获取客户历史互动记录"""

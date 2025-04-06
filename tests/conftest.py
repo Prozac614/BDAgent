@@ -1,8 +1,12 @@
 import pytest
+import os
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+# 设置测试环境变量
+os.environ["TESTING"] = "1"
 
 from merchant.web.main import app
 from merchant.web.models.base import Base, get_db

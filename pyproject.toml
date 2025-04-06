@@ -7,6 +7,16 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "crewai[tools]>=0.108.0,<1.0.0",
     "firecrawl-py>=1.15.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "sqlalchemy>=2.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "emails>=0.6.0",
+    "alembic>=1.13.0",
+    "pydantic[email]>=2.5.0",
+    "python-dotenv>=1.0.0"
 ]
 
 [project.scripts]
@@ -15,6 +25,7 @@ run_crew = "merchant.main:run"
 train = "merchant.main:train"
 replay = "merchant.main:replay"
 test = "merchant.main:test"
+web = "merchant.web.main:run"
 
 [build-system]
 requires = ["hatchling"]

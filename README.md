@@ -1,54 +1,95 @@
-# Merchant Crew
+# Merchant CRM
 
-Welcome to the Merchant Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+一个基于 FastAPI 和 crewAI 的智能客户关系管理系统。
 
-## Installation
+## 功能特点
 
-Ensure you have Python >=3.10 <3.13 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+- 用户认证与授权
+- 客户管理
+- AI 驱动的客户开发
+- 智能客户互动
+- 自动化邮件沟通
 
-First, if you haven't already, install uv:
+## 系统要求
 
-```bash
-pip install uv
-```
+- Python >= 3.10, < 3.13
+- SQLite3
 
-Next, navigate to your project directory and install the dependencies:
+## 安装
 
-(Optional) Lock the dependencies and install them by using the CLI command:
-```bash
-crewai install
-```
-### Customizing
-
-**Add your `OPENAI_API_KEY` into the `.env` file**
-
-- Modify `src/merchant/config/agents.yaml` to define your agents
-- Modify `src/merchant/config/tasks.yaml` to define your tasks
-- Modify `src/merchant/crew.py` to add your own logic, tools and specific args
-- Modify `src/merchant/main.py` to add custom inputs for your agents and tasks
-
-## Running the Project
-
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
+1. 克隆项目：
 
 ```bash
-$ crewai run
+git clone [项目地址]
+cd merchant
 ```
 
-This command initializes the merchant Crew, assembling the agents and assigning them tasks as defined in your configuration.
+2. 创建并激活虚拟环境：
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# 或
+.venv\Scripts\activate  # Windows
+```
 
-## Understanding Your Crew
+3. 安装依赖：
 
-The merchant Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+```bash
+pip install -e .
+```
 
-## Support
+4. 配置环境变量：
 
-For support, questions, or feedback regarding the Merchant Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
+复制 `.env.example` 到 `.env` 并填写必要的配置：
 
-Let's create wonders together with the power and simplicity of crewAI.
+```env
+# API Keys
+DEEPSEEK_API_KEY=your_api_key
+SERPER_API_KEY=your_api_key
+
+# Database configuration
+DATABASE_URL=sqlite:///./merchant.db
+
+# Email configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-specific-password
+EMAIL_SENDER=your-crm@example.com
+```
+
+## 启动服务
+
+使用以下命令启动开发服务器：
+
+```bash
+uvicorn merchant.web.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+服务器将在 http://localhost:8000 启动，你可以通过以下方式访问：
+
+- API 文档：http://localhost:8000/docs
+- API 端点：http://localhost:8000/api
+
+## API 端点
+
+- 认证
+  - POST /api/auth/register - 注册新用户
+  - POST /api/auth/token - 用户登录
+  - GET /api/auth/me - 获取当前用户信息
+
+- 用户管理
+  - GET /api/users - 获取用户列表
+  - POST /api/users - 创建新用户
+
+- 客户管理
+  - GET /api/customers - 获取客户列表
+  - POST /api/customers - 创建新客户
+  - GET /api/customers/{id} - 获取客户详情
+  - GET /api/customers/{id}/interactions - 获取客户互动记录
+
+- AI 代理
+  - POST /api/agents/prospect - 智能寻找潜在客户
+  - POST /api/agents/engage/{customer_id} - AI 驱动的客户互动
+  - POST /api/agents/analyze-customers - 分析客户数据生成见解

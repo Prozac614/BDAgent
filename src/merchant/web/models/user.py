@@ -16,4 +16,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # 添加与 Customer 的关系
-    customers = relationship("Customer", back_populates="user") 
+    customers = relationship("Customer", back_populates="user")
+    
+    # 添加与 UserEmail 的关系
+    emails = relationship("UserEmail", back_populates="user", cascade="all, delete-orphan")

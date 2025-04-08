@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>控制台 - Merchant CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-indigo-600">Merchant CRM</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span id="userEmail" class="text-gray-700 mr-4"></span>
+                    <button onclick="logout()" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
+                        退出登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+            <div class="border-4 border-dashed border-gray-200 rounded-lg h-96 p-4">
+                <h2 class="text-2xl font-bold mb-4">欢迎使用 Merchant CRM</h2>
+                <p class="text-gray-600">这里是您的控制台首页，您可以在这里管理客户关系。</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 检查登录状态
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('未授权');
+                }
+
+                const user = await response.json();
+                document.getElementById('userEmail').textContent = user.email;
+            } catch (error) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        // 页面加载时检查登录状态
+        checkAuth();
+    </script>
+</body>
+</html> 

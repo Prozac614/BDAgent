@@ -19,3 +19,4 @@ class User(Base):
 
     # 关系
     customers = relationship("Customer", back_populates="user", cascade="all, delete-orphan")
+    email_bindings = relationship("EmailBinding", back_populates="user", cascade="all, delete-orphan")

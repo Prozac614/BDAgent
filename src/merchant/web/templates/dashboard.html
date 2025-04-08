@@ -1,24 +1,22 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>控制台 - Merchant CRM</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Dashboard - Merchant CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
     <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="text-xl font-bold text-indigo-600">Merchant CRM</span>
-                    </div>
+                <div class="flex items-center">
+                    <span class="text-xl font-semibold">Merchant CRM</span>
                 </div>
                 <div class="flex items-center">
                     <span id="userEmail" class="text-gray-700 mr-4"></span>
-                    <button onclick="logout()" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
-                        退出登录
+                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Logout
                     </button>
                 </div>
             </div>
@@ -26,50 +24,185 @@
     </nav>
 
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 py-6 sm:px-0">
-            <div class="border-4 border-dashed border-gray-200 rounded-lg h-96 p-4">
-                <h2 class="text-2xl font-bold mb-4">欢迎使用 Merchant CRM</h2>
-                <p class="text-gray-600">这里是您的控制台首页，您可以在这里管理客户关系。</p>
+        <!-- 邮箱绑定卡片 -->
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">邮箱绑定</h2>
+            <div id="emailBindings" class="mb-4">
+                <!-- 已绑定的邮箱列表将在这里显示 -->
             </div>
+            <button onclick="showBindEmailModal()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                绑定新邮箱
+            </button>
+        </div>
+
+        <!-- 其他仪表板内容 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">欢迎使用 Merchant CRM</h2>
+            <p>这里是您的个人仪表板。</p>
         </div>
     </main>
 
+    <!-- 邮箱绑定模态框 -->
+    <div id="bindEmailModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-lg font-semibold mb-4">绑定新邮箱</h3>
+            <form id="bindEmailForm" class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">邮箱地址</label>
+                    <input type="email" id="email" name="email" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+                    <input type="password" id="password" name="password" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="imapServer" class="block text-sm font-medium text-gray-700">IMAP服务器</label>
+                    <input type="text" id="imapServer" name="imapServer" value="imap.gmail.com"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="imapPort" class="block text-sm font-medium text-gray-700">IMAP端口</label>
+                    <input type="number" id="imapPort" name="imapPort" value="993"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="hideBindEmailModal()"
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                        取消
+                    </button>
+                    <button type="submit"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        绑定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // 检查登录状态
-        async function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/login';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/auth/me', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('未授权');
+        // 获取用户信息
+        async function fetchUserInfo() {
+            const response = await fetch('/api/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
-
+            });
+            if (response.ok) {
                 const user = await response.json();
                 document.getElementById('userEmail').textContent = user.email;
-            } catch (error) {
-                localStorage.removeItem('token');
+            } else {
                 window.location.href = '/login';
             }
         }
 
-        // 退出登录
+        // 获取已绑定的邮箱列表
+        async function fetchEmailBindings() {
+            const response = await fetch('/api/email/list', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.ok) {
+                const bindings = await response.json();
+                const container = document.getElementById('emailBindings');
+                container.innerHTML = '';
+                
+                bindings.forEach(binding => {
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded mb-2';
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-medium">${binding.email}</div>
+                            <div class="text-sm text-gray-500">${binding.imap_server}:${binding.imap_port}</div>
+                        </div>
+                        <button onclick="unbindEmail(${binding.id})" 
+                            class="text-red-500 hover:text-red-700">解绑</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        // 显示绑定邮箱模态框
+        function showBindEmailModal() {
+            document.getElementById('bindEmailModal').classList.remove('hidden');
+        }
+
+        // 隐藏绑定邮箱模态框
+        function hideBindEmailModal() {
+            document.getElementById('bindEmailModal').classList.add('hidden');
+        }
+
+        // 绑定邮箱
+        document.getElementById('bindEmailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                imap_server: document.getElementById('imapServer').value,
+                imap_port: parseInt(document.getElementById('imapPort').value)
+            };
+
+            try {
+                const response = await fetch('/api/email/bind', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    hideBindEmailModal();
+                    fetchEmailBindings();
+                    alert('邮箱绑定成功！');
+                } else {
+                    const error = await response.json();
+                    alert(`绑定失败：${error.detail}`);
+                }
+            } catch (error) {
+                alert('绑定失败：' + error.message);
+            }
+        });
+
+        // 解绑邮箱
+        async function unbindEmail(bindingId) {
+            if (!confirm('确定要解绑这个邮箱吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/email/${bindingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    fetchEmailBindings();
+                    alert('邮箱解绑成功！');
+                } else {
+                    const error = await response.json();
+                    alert(`解绑失败：${error.detail}`);
+                }
+            } catch (error) {
+                alert('解绑失败：' + error.message);
+            }
+        }
+
+        // 登出
         function logout() {
             localStorage.removeItem('token');
             window.location.href = '/login';
         }
 
-        // 页面加载时检查登录状态
-        checkAuth();
+        // 页面加载时获取用户信息和邮箱绑定列表
+        fetchUserInfo();
+        fetchEmailBindings();
     </script>
 </body>
-</html> 
+</html>

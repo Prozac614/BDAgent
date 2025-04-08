@@ -5,7 +5,8 @@ import uvicorn
 from .models.base import engine, Base
 from .models.user import User
 from .models.customer import Customer, CustomerInteraction
-from .routes import users, customers, auth, pages  # 从routes导入所有路由
+from .models.email import EmailBinding
+from .routes import users, customers, auth, pages, email  # 从routes导入所有路由
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
@@ -30,6 +31,7 @@ app.include_router(pages.router, tags=["pages"])  # 添加页面路由
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
+app.include_router(email.router, prefix="/api/email", tags=["email"])
 
 @app.get("/")
 async def root():
@@ -46,7 +48,8 @@ async def api_root():
         "endpoints": [
             "/api/auth",
             "/api/users",
-            "/api/customers"
+            "/api/customers",
+            "/api/email"
         ],
         "documentation": "/docs"
     }

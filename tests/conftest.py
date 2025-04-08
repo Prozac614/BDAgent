@@ -1,5 +1,6 @@
 import pytest
 import os
+import sys
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -8,18 +9,19 @@ from sqlalchemy.pool import StaticPool
 # 设置测试环境变量
 os.environ["TESTING"] = "1"
 
-from merchant.web.main import app
-from merchant.web.models.base import Base, get_db
-from merchant.web.models.user import User
-from merchant.web.models.customer import Customer, CustomerInteraction
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.merchant.web.main import app
+from src.merchant.web.models.base import Base, get_db
+from src.merchant.web.models.user import User
+from src.merchant.web.models.customer import Customer, CustomerInteraction
+from src.merchant.web.models.email import EmailBinding
+from src.merchant.web.utils.auth import get_password_hash, create_access_token
 
 # 创建测试数据库
-SQLALCHEMY_DATABASE_URL = "sqlite://"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="session")
@@ -28,14 +30,18 @@ def test_engine():
     return engine
 
 @pytest.fixture(scope="function")
-def test_db():
-    """为每个测试创建新的数据库表"""
+def db():
+    """创建测试数据库会话"""
     Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="function")
-def test_session(test_db):
+def test_session(db):
     """为每个测试提供数据库会话"""
     connection = engine.connect()
     transaction = connection.begin()
@@ -48,11 +54,11 @@ def test_session(test_db):
     connection.close()
 
 @pytest.fixture(scope="function")
-def client(test_session):
+def client(db):
     """创建测试客户端"""
     def override_get_db():
         try:
-            yield test_session
+            yield db
         finally:
             pass
 
@@ -62,35 +68,51 @@ def client(test_session):
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
-def superuser_token(client, test_session):
+def test_user(db):
+    """创建测试用户"""
+    user = User(
+        email="test@example.com",
+        hashed_password=get_password_hash("testpassword"),
+        full_name="Test User"
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@pytest.fixture(scope="function")
+def test_email_binding(db, test_user):
+    """创建测试邮箱绑定"""
+    binding = EmailBinding(
+        user_id=test_user.id,
+        email="test@example.com",
+        password="testpassword",
+        imap_server="imap.example.com",
+        imap_port=993
+    )
+    db.add(binding)
+    db.commit()
+    db.refresh(binding)
+    return binding
+
+@pytest.fixture(scope="function")
+def superuser_token(client, db):
     """创建超级用户并返回token"""
-    # 注册超级用户
-    response = client.post(
-        "/api/auth/register",
-        json={
-            "email": "admin@example.com",
-            "password": "adminpassword",
-            "full_name": "Admin User"
-        }
+    # 创建超级用户
+    superuser = User(
+        email="admin@example.com",
+        hashed_password=get_password_hash("adminpassword"),
+        full_name="Admin User",
+        is_superuser=True,
+        is_active=True
     )
+    db.add(superuser)
+    db.commit()
+    db.refresh(superuser)
     
-    # 将用户设置为超级用户
-    user = test_session.query(User).filter(User.email == "admin@example.com").first()
-    if user:
-        user.is_superuser = True
-        test_session.commit()
-        test_session.refresh(user)
-    
-    # 登录并返回token
-    login_response = client.post(
-        "/api/auth/token",
-        data={
-            "username": "admin@example.com",
-            "password": "adminpassword"
-        }
-    )
-    
-    return login_response.json()["access_token"]
+    # 创建访问令牌
+    access_token = create_access_token(data={"sub": superuser.email})
+    return access_token
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class EmailBindRequest(BaseModel):
@@ -33,4 +33,17 @@ class EmailBindingInfo(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class EmailMessage(BaseModel):
+    """邮件消息"""
+    id: str
+    subject: str
+    from_addr: str
+    date: datetime
+    has_attachments: bool
+
+class EmailInboxResponse(BaseModel):
+    """收件箱响应"""
+    emails: List[EmailMessage]
+    total: int 

@@ -1,14 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Merchant CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .main-container {
+            height: calc(100vh - 64px);
+        }
+
+        .email-list {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+
+        .email-content {
+            height: 100%;
+            overflow-y: auto;
+        }
+    </style>
 </head>
+
 <body class="bg-gray-100">
     <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-[1920px] mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <span class="text-xl font-semibold">Merchant CRM</span>
@@ -23,22 +40,65 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <!-- 邮箱绑定卡片 -->
-        <div class="bg-white shadow rounded-lg p-6 mb-6">
-            <h2 class="text-lg font-semibold mb-4">邮箱绑定</h2>
-            <div id="emailBindings" class="mb-4">
-                <!-- 已绑定的邮箱列表将在这里显示 -->
-            </div>
-            <button onclick="showBindEmailModal()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                绑定新邮箱
-            </button>
-        </div>
+    <main class="max-w-[1920px] mx-auto py-6 px-4">
+        <!-- 主要内容区域 -->
+        <div id="inboxContainer" class="hidden">
+            <div class="bg-white shadow rounded-lg flex">
+                <!-- 左侧邮件列表 (20%) -->
+                <div class="w-1/5 border-r border-gray-200">
+                    <!-- 邮箱选择工具栏 -->
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex items-center gap-2">
+                            <select id="emailSelect" class="flex-1 p-2 border rounded" onchange="loadInbox()">
+                                <option value="">选择邮箱...</option>
+                            </select>
+                            <button onclick="showBindEmailModal()"
+                                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                title="绑定新邮箱">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- 其他仪表板内容 -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold mb-4">欢迎使用 Merchant CRM</h2>
-            <p>这里是您的个人仪表板。</p>
+                    <div class="email-list">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        发件人</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        主题</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        日期</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inboxList" class="bg-white divide-y divide-gray-200">
+                                <!-- 邮件列表将在这里显示 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 右侧邮件内容 (80%) -->
+                <div id="emailContent" class="w-4/5 p-6 email-content hidden">
+                    <div class="mb-6">
+                        <h3 id="emailSubject" class="text-2xl font-semibold mb-4"></h3>
+                        <div class="text-sm text-gray-600 space-y-1">
+                            <div>发件人: <span id="emailFrom" class="font-medium"></span></div>
+                            <div>日期: <span id="emailDate" class="font-medium"></span></div>
+                        </div>
+                    </div>
+                    <div id="emailBody" class="prose max-w-none">
+                        <!-- 邮件内容将在这里显示 -->
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -59,7 +119,7 @@
                 </div>
                 <div>
                     <label for="imapServer" class="block text-sm font-medium text-gray-700">IMAP服务器</label>
-                    <input type="text" id="imapServer" name="imapServer" value="imap.gmail.com"
+                    <input type="text" id="imapServer" name="imapServer" value="imap.163.com"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
                 <div>
@@ -72,8 +132,7 @@
                         class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
                         取消
                     </button>
-                    <button type="submit"
-                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                         绑定
                     </button>
                 </div>
@@ -106,23 +165,77 @@
             });
             if (response.ok) {
                 const bindings = await response.json();
-                const container = document.getElementById('emailBindings');
-                container.innerHTML = '';
-                
+                const emailSelect = document.getElementById('emailSelect');
+
+                emailSelect.innerHTML = '<option value="">选择邮箱...</option>';
+
                 bindings.forEach(binding => {
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded mb-2';
-                    div.innerHTML = `
-                        <div>
-                            <div class="font-medium">${binding.email}</div>
-                            <div class="text-sm text-gray-500">${binding.imap_server}:${binding.imap_port}</div>
-                        </div>
-                        <button onclick="unbindEmail(${binding.id})" 
-                            class="text-red-500 hover:text-red-700">解绑</button>
-                    `;
-                    container.appendChild(div);
+                    const option = document.createElement('option');
+                    option.value = binding.id;
+                    option.textContent = binding.email;
+                    emailSelect.appendChild(option);
                 });
+
+                if (bindings.length > 0) {
+                    emailSelect.value = bindings[0].id;
+                    loadInbox();
+                }
             }
+        }
+
+        // 加载收件箱
+        async function loadInbox() {
+            const bindingId = document.getElementById('emailSelect').value;
+            if (!bindingId) {
+                document.getElementById('inboxContainer').classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/email/inbox/${bindingId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const inboxList = document.getElementById('inboxList');
+                    inboxList.innerHTML = '';
+
+                    // 对邮件按日期倒序排序
+                    data.emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    data.emails.forEach(email => {
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-gray-50 cursor-pointer';
+                        row.onclick = () => showEmailContent(email);
+                        row.innerHTML = `
+                            <td class="px-4 py-3 text-sm text-gray-900">${email.from_addr}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">${email.subject}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">${new Date(email.date).toLocaleString()}</td>
+                        `;
+                        inboxList.appendChild(row);
+                    });
+
+                    document.getElementById('inboxContainer').classList.remove('hidden');
+                } else {
+                    const error = await response.json();
+                    alert(`加载收件箱失败：${error.detail}`);
+                }
+            } catch (error) {
+                alert('加载收件箱失败：' + error.message);
+            }
+        }
+
+        // 显示邮件内容
+        function showEmailContent(email) {
+            const emailContent = document.getElementById('emailContent');
+            document.getElementById('emailSubject').textContent = email.subject;
+            document.getElementById('emailFrom').textContent = email.from_addr;
+            document.getElementById('emailDate').textContent = new Date(email.date).toLocaleString();
+            document.getElementById('emailBody').innerHTML = email.body || '无内容';
+            emailContent.classList.remove('hidden');
         }
 
         // 显示绑定邮箱模态框
@@ -133,65 +246,6 @@
         // 隐藏绑定邮箱模态框
         function hideBindEmailModal() {
             document.getElementById('bindEmailModal').classList.add('hidden');
-        }
-
-        // 绑定邮箱
-        document.getElementById('bindEmailForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = {
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
-                imap_server: document.getElementById('imapServer').value,
-                imap_port: parseInt(document.getElementById('imapPort').value)
-            };
-
-            try {
-                const response = await fetch('/api/email/bind', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                if (response.ok) {
-                    hideBindEmailModal();
-                    fetchEmailBindings();
-                    alert('邮箱绑定成功！');
-                } else {
-                    const error = await response.json();
-                    alert(`绑定失败：${error.detail}`);
-                }
-            } catch (error) {
-                alert('绑定失败：' + error.message);
-            }
-        });
-
-        // 解绑邮箱
-        async function unbindEmail(bindingId) {
-            if (!confirm('确定要解绑这个邮箱吗？')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/email/${bindingId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                if (response.ok) {
-                    fetchEmailBindings();
-                    alert('邮箱解绑成功！');
-                } else {
-                    const error = await response.json();
-                    alert(`解绑失败：${error.detail}`);
-                }
-            } catch (error) {
-                alert('解绑失败：' + error.message);
-            }
         }
 
         // 登出
@@ -205,4 +259,5 @@
         fetchEmailBindings();
     </script>
 </body>
+
 </html>

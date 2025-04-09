@@ -5,9 +5,9 @@ from typing import List
 from ..models.base import get_db
 from ..models.user import User
 from ..models.email import EmailBinding
-from ..schemas.email import EmailBindRequest, EmailBindResponse, EmailBindingInfo
+from ..schemas.email import EmailBindRequest, EmailBindResponse, EmailBindingInfo, EmailInboxResponse
 from ..utils.auth import get_current_user
-from ..utils.email import verify_imap_connection
+from ..utils.email import verify_imap_connection, fetch_inbox_emails
 
 router = APIRouter()
 
@@ -35,6 +35,12 @@ async def bind_email(
     )
     
     if not success:
+        # 检查是否是 Gmail 的不安全登录错误
+        if "Gmail 需要应用专用密码" in message:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message
@@ -84,4 +90,36 @@ async def unbind_email(
     db.delete(binding)
     db.commit()
     
-    return {"status": "success", "message": "Email unbound successfully"} 
+    return {"status": "success", "message": "Email unbound successfully"}
+
+@router.get("/inbox/{binding_id}", response_model=EmailInboxResponse)
+async def get_inbox_emails(
+    binding_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取指定邮箱的收件箱邮件"""
+    # 获取邮箱绑定信息
+    email_binding = db.query(EmailBinding).filter(
+        EmailBinding.id == binding_id,
+        EmailBinding.user_id == current_user.id
+    ).first()
+    
+    if not email_binding:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email binding not found"
+        )
+    
+    try:
+        # 获取收件箱邮件
+        emails = fetch_inbox_emails(email_binding)
+        return EmailInboxResponse(emails=emails, total=len(emails))
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error fetching inbox: {error_details}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        ) 
